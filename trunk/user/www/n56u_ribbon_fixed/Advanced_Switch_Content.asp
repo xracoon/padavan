@@ -25,6 +25,7 @@ var $j = jQuery.noConflict();
 $j(document).ready(function() {
 	init_itoggle('ether_green');
 	init_itoggle('ether_eee');
+	init_vlan_matrix();
 });
 
 </script>
@@ -35,6 +36,43 @@ $j(document).ready(function() {
 <% hardware_pins(); %>
 
 var id_update_status = 0;
+
+var vlan_matrix_ports = [['WAN',1],['LAN1',2],['LAN2',4],['LAN3',8],['CPU-LAN',16384],['CPU-WAN',32768]];
+
+function init_vlan_matrix(){
+	var rows = (document.form.vlan_matrix_rules.value || '').split(';');
+	var html = '<table class="table table-condensed" style="font-size:12px"><tr><th>VID</th><th>优先级</th>';
+	for (var p=0; p<vlan_matrix_ports.length; p++) html += '<th>'+vlan_matrix_ports[p][0]+'</th>';
+	html += '</tr>';
+	for (var i=0; i<16; i++){
+		var f=(rows[i]||'').split(','), vid=f.length==4?f[0]:'', pri=f.length==4?f[1]:'0';
+		var member=f.length==4?parseInt(f[2],10):0, untag=f.length==4?parseInt(f[3],10):0;
+		html += '<tr><td><input name="vlan_vid_'+i+'" value="'+vid+'" size="4" class="input-mini"></td><td><input name="vlan_pri_'+i+'" value="'+pri+'" size="1" class="input-mini"></td>';
+		for (p=0; p<vlan_matrix_ports.length; p++){
+			var mask=vlan_matrix_ports[p][1], state=(member&mask)?((untag&mask)?'u':'t'):'x';
+			html += '<td><select name="vlan_port_'+i+'_'+p+'" class="input-small"><option value="x"'+(state=='x'?' selected':'')+'>—</option><option value="t"'+(state=='t'?' selected':'')+'>Tagged</option><option value="u"'+(state=='u'?' selected':'')+'>Untagged</option></select></td>';
+		}
+		html += '</tr>';
+	}
+	document.getElementById('vlan_matrix_table').innerHTML=html+'</table>';
+}
+
+function serialize_vlan_matrix(){
+	var rules=[];
+	for (var i=0; i<16; i++){
+		var vid=parseInt(document.form['vlan_vid_'+i].value,10);
+		if (isNaN(vid)||vid<1||vid>4094) continue;
+		var pri=parseInt(document.form['vlan_pri_'+i].value,10); if (isNaN(pri)||pri<0||pri>7) pri=0;
+		var member=0, untag=0;
+		for (var p=0; p<vlan_matrix_ports.length; p++){
+			var state=document.form['vlan_port_'+i+'_'+p].value;
+			if (state!='x') member|=vlan_matrix_ports[p][1];
+			if (state=='u') untag|=vlan_matrix_ports[p][1];
+		}
+		if (member) rules.push(vid+','+pri+','+member+','+untag);
+	}
+	document.form.vlan_matrix_rules.value=rules.join(';');
+}
 
 function initial(){
 	var id_menu = 5;
@@ -157,6 +195,7 @@ function show_port_link(oname,idx,led0,led1){
 
 function applyRule(){
 	showLoading();
+	serialize_vlan_matrix();
 
 	document.form.action_mode.value = " Apply ";
 	document.form.current_page.value = "Advanced_Switch_Content.asp";
@@ -280,6 +319,24 @@ function done_validating(action){
                                                     <input type="radio" value="1" name="ether_eee" id="ether_eee_1" class="input" <% nvram_match_x("", "ether_eee", "1", "checked"); %> /><#checkbox_Yes#>
                                                     <input type="radio" value="0" name="ether_eee" id="ether_eee_0" class="input" <% nvram_match_x("", "ether_eee", "0", "checked"); %> /><#checkbox_No#>
                                                 </div>
+                                            </td>
+                                        </tr>
+                                    </table>
+
+                                    <table width="100%" cellpadding="4" cellspacing="0" class="table">
+                                        <tr>
+                                            <th colspan="2" style="background-color: #E3E3E3;">MT7530 VLAN 矩阵</th>
+                                        </tr>
+                                        <tr>
+                                            <th>启用自定义 VLAN</th>
+                                            <td><input type="hidden" name="vlan_matrix_enable" value="0"><input type="checkbox" name="vlan_matrix_enable" value="1" <% nvram_match_x("", "vlan_matrix_enable", "1", "checked"); %>></td>
+                                        </tr>
+                                        <tr>
+                                            <th>VLAN 规则</th>
+                                            <td>
+                                                <input type="hidden" name="vlan_matrix_rules" value="<% nvram_get_x("", "vlan_matrix_rules"); %>">
+                                                <div id="vlan_matrix_table"></div>
+                                                <div class="help-block">每行一个 VLAN；端口可直接选择排除、Tagged 或 Untagged。</div>
                                             </td>
                                         </tr>
                                     </table>

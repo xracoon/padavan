@@ -417,6 +417,26 @@ switch_config_vlan(int first_call)
 	int vlan_pri[SWAPI_VLAN_RULE_NUM] = {0};
 	int vlan_tag[SWAPI_VLAN_RULE_NUM] = {0};
 	unsigned int vrule;
+	char matrix[1024], *entry, *saveptr;
+	int i, vid, pri, member, untag;
+
+	/* MI-R3P custom hardware VLAN matrix: vid,priority,member,untag;... */
+	if (nvram_match("vlan_matrix_enable", "1")) {
+		strncpy(matrix, nvram_safe_get("vlan_matrix_rules"), sizeof(matrix) - 1);
+		matrix[sizeof(matrix) - 1] = '\0';
+		phy_vlan_reset_table();
+		entry = strtok_r(matrix, ";", &saveptr);
+		for (i = 0; entry && i < 16; i++, entry = strtok_r(NULL, ";", &saveptr)) {
+			if (sscanf(entry, "%d,%d,%d,%d", &vid, &pri, &member, &untag) != 4)
+				continue;
+			if (vid < 1 || vid > 4094 || pri < 0 || pri > 7 ||
+			    member < 1 || member > 0xffff || (untag & ~member))
+				continue;
+			phy_vlan_create_port_vid(vid, pri, member, untag, 0);
+		}
+		phy_bridge_mode(SWAPI_WAN_BRIDGE_DISABLE, SWAPI_WAN_BWAN_ISOLATION_NONE);
+		return;
+	}
 
 	bridge_mode = get_wan_bridge_mode();
 	bwan_isolation = get_wan_bridge_iso_mode(bridge_mode);

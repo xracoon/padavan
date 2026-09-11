@@ -13,6 +13,10 @@ CFLAGS += -s -I. -I$(SHDIR) -I$(SHDIR)/include
 CFLAGS += -I$(USERDIR)/wireless_tools
 CFLAGS += -I$(ROOTDIR)/$(LINUXDIR)/include/ralink
 
+ifeq ($(CONFIG_FIRMWARE_INCLUDE_SMARTDNS),y)
+CFLAGS += -DAPP_SMARTDNS
+endif
+
 # Disable/Enable ugly httpd_check
 #CFLAGS += -DHTTPD_CHECK
 

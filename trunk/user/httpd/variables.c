@@ -287,6 +287,8 @@
 			{"vlan_vid_lan4", "", NULL, EVM_RESTART_SWITCH_VLAN},
 			{"vlan_pri_lan4", "", NULL, EVM_RESTART_SWITCH_VLAN},
 			{"vlan_tag_lan4", "", NULL, EVM_RESTART_SWITCH_VLAN},
+			{"vlan_matrix_enable", "", NULL, EVM_RESTART_SWITCH_VLAN},
+			{"vlan_matrix_rules", "", NULL, EVM_RESTART_SWITCH_VLAN},
 			{"wan_auth_mode", "", NULL, EVM_RESTART_WAN},
 			{"wan_auth_user", "", NULL, EVM_RESTART_WAN},
 			{"wan_auth_pass", "", NULL, EVM_RESTART_WAN},
@@ -1074,4 +1076,3 @@
 		{EVM_RESTART_FIREWALL,		EVT_RESTART_FIREWALL,		RCN_RESTART_FIREWALL,	0},
 		{0,0,0,0}
 	};
-

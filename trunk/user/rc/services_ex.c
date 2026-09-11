@@ -42,6 +42,71 @@
 #define UPNPD_LEASE_FILE	"/tmp/miniupnpd.leases"
 #define INADYN_USER_DIR		"/etc/storage/inadyn"
 
+#ifdef APP_SMARTDNS
+static int
+smartdns_prepare_upstream(void)
+{
+	FILE *in, *out;
+	char line[256];
+
+	in = fopen(DNS_RESOLV_CONF, "r");
+	out = fopen("/tmp/smartdns-upstream.conf", "w");
+	if (!in || !out) {
+		if (in) fclose(in);
+		if (out) fclose(out);
+		return -1;
+	}
+	while (fgets(line, sizeof(line), in)) {
+		if (strstr(line, "127.0.0.1") == NULL &&
+		    strstr(line, "::1") == NULL)
+			fputs(line, out);
+	}
+	fclose(in);
+	fclose(out);
+	return 0;
+}
+
+static int
+start_smartdns(void)
+{
+	FILE *fp;
+
+	if (pids("smartdns") > 0)
+		return 0;
+	if (smartdns_prepare_upstream() < 0)
+		return -1;
+	if (mkdir("/etc/storage/smartdns", 0755) < 0 && errno != EEXIST)
+		return -1;
+	if (access("/etc/storage/smartdns/custom.conf", F_OK) < 0) {
+		fp = fopen("/etc/storage/smartdns/custom.conf", "w");
+		if (!fp)
+			return -1;
+		fclose(fp);
+	}
+	fp = fopen("/tmp/smartdns.conf", "w");
+	if (!fp)
+		return -1;
+	fputs("bind 127.0.0.1:6053\n"
+	      "resolv-file /tmp/smartdns-upstream.conf\n"
+	      "cache-size 4096\n"
+	      "prefetch-domain yes\n"
+	      "serve-expired yes\n"
+	      "log-level warn\n"
+	      "log-file /var/log/smartdns.log\n"
+	      "log-size 524288\n"
+	      "conf-file /etc/storage/smartdns/custom.conf\n", fp);
+	fclose(fp);
+	return eval("/usr/bin/smartdns -c /tmp/smartdns.conf -p /tmp/smartdns.pid");
+}
+
+static void
+stop_smartdns(void)
+{
+	if (pids("smartdns") > 0)
+		doSystem("killall %s", "smartdns");
+}
+#endif
+
 static void
 simple_dhcp_range(const char *ip, char *dip1, char *dip2, const char *mask)
 {
@@ -319,6 +384,11 @@ start_dns_dhcpd(int is_ap_mode)
 		create_file(DNS_RESOLV_CONF);
 	}
 
+#ifdef APP_SMARTDNS
+	if (!is_ap_mode)
+		start_smartdns();
+#endif
+
 	/* create /etc/dnsmasq.conf */
 	if (!(fp = fopen("/etc/dnsmasq.conf", "w")))
 		return errno;
@@ -347,6 +417,9 @@ start_dns_dhcpd(int is_ap_mode)
 		fprintf(fp, "dns-forward-max=%d\n", DNS_RELAY_QUERIES_MAX);
 		fprintf(fp, "addn-hosts=%s/hosts\n", storage_dir);
 		fprintf(fp, "servers-file=%s\n", DNS_SERVERS_FILE);
+		#ifdef APP_SMARTDNS
+		fprintf(fp, "server=127.0.0.1#6053\n");
+		#endif
 		fprintf(fp, "dhcp-hostsfile=%s/dhcp.conf\n", storage_dir);
 	} else {
 		is_dns_used = 0;
@@ -516,6 +589,10 @@ stop_dns_dhcpd(void)
 	char* svcs[] = { "dnsmasq", NULL };
 
 	kill_services(svcs, 3, 1);
+
+#ifdef APP_SMARTDNS
+	stop_smartdns();
+#endif
 
 	arpbind_clear();
 }
@@ -1174,4 +1251,3 @@ manual_ddns_hostname_check(void)
 {
 	nvram_set_temp("ddns_return_code", "inadyn_unsupport");
 }
-
