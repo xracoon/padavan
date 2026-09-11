@@ -11,6 +11,10 @@ on:
         required: false
         default: 'no'
 
+concurrency:
+  group: mi-r3p-ci
+  cancel-in-progress: true
+
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   build:
