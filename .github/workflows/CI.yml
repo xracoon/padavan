@@ -16,6 +16,7 @@ jobs:
   build:
     name: build
     runs-on: ubuntu-22.04
+    timeout-minutes: 30
     env:
       build_variant: "mi-r3p"
       targets: "MI-R3P"
@@ -66,7 +67,7 @@ jobs:
           name: ${{ env.image_name }}
           path: ${{ env.images_dir }}/*.7z
       - name: Upload build logs
-        if: failure()
+        if: failure() || cancelled()
         uses: actions/upload-artifact@v4
         with:
           name: mi-r3p-build-logs
