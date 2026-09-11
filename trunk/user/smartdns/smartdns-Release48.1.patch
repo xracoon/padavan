@@ -1,0 +1,12 @@
+diff --git a/src/dns_client/dns_client.h b/src/dns_client/dns_client.h
+index 3281fc7..84980a2 100644
+--- a/src/dns_client/dns_client.h
++++ b/src/dns_client/dns_client.h
+@@ -34,0 +35 @@
++#include <pthread.h>
+diff --git a/src/dns_server/server_udp.c b/src/dns_server/server_udp.c
+index 161345f..206f79b 100644
+--- a/src/dns_server/server_udp.c
++++ b/src/dns_server/server_udp.c
+@@ -26 +25,0 @@
+-#include <linux/in.h>

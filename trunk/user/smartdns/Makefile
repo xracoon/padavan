@@ -9,6 +9,7 @@ all: extract_test config_test
 extract_test:
 	( if [ ! -d $(SRC_NAME) ]; then \
 		tar -xf $(SRC_NAME).tar.gz ; \
+		patch -d $(SRC_NAME) -p1 < $(SRC_NAME).patch ; \
 	fi )
 
 config_test:
@@ -26,3 +27,4 @@ clean:
 
 romfs:
 	$(ROMFSINST) -p +x $(THISDIR)/$(SRC_NAME)/src/smartdns /usr/bin/smartdns
+	cp -fP $(CONFIG_CROSS_COMPILER_ROOT)/mipsel-linux-uclibc/sysroot/lib/libatomic.so.1* $(ROMFSDIR)/lib
