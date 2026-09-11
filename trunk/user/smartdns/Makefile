@@ -3,8 +3,8 @@ THISDIR = $(shell pwd)
 
 all: extract_test config_test
 	$(MAKE) -C $(SRC_NAME) \
-		CFLAGS="-Os -ffunction-sections -fdata-sections" \
-		LDFLAGS="-Wl,--gc-sections" WITH_ZLIB=0 NO_GIT_VER=1
+		CFLAGS="$(CFLAGS) -ffunction-sections -fdata-sections" \
+		LDFLAGS="$(LDFLAGS) -Wl,--gc-sections" WITH_ZLIB=0 NO_GIT_VER=1
 
 extract_test:
 	( if [ ! -d $(SRC_NAME) ]; then \
